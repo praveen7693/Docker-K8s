@@ -1,0 +1,197 @@
+Ingress Tutorial
+
+Step 1
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
+
+Step 2
+minikube addons enable ingress
+
+step 3
+
+notepad sapp.yaml
+-----------------
+kind: Pod
+apiVersion: v1
+metadata:
+  name: apple-app
+  labels:
+    app: apple
+spec:
+  containers:
+    - name: apple-app
+      image: hashicorp/http-echo
+      args:
+        - "-text=apple"
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: apple-service
+spec:
+  selector:
+    app: apple
+  ports:
+    - port: 5678 # Default port for image
+	
+step 4:
+-------
+
+notepad sbann.yaml
+
+kind: Pod
+apiVersion: v1
+metadata:
+  name: banana-app
+  labels:
+    app: banana
+spec:
+  containers:
+    - name: banana-app
+      image: hashicorp/http-echo
+      args:
+        - "-text=banana"
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: banana-service
+spec:
+  selector:
+    app: banana
+  ports:
+    - port: 5678 # Default port for image
+	
+Step 5
+
+kubectl apply -f sapp.yaml
+kubectl apply -f sbann.yaml
+
+Step 6
+
+notepad ing.yaml
+----------------
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+        - path: /apple
+          backend:
+            serviceName: apple-service
+            servicePort: 5678
+        - path: /banana
+          backend:
+            serviceName: banana-service
+            servicePort: 5678
+
+step 7
+kubectl create -f ing.yaml
+
+step 8
+
+curl -kL http://<<minikube ip>/apple
+curl -kL http://<<minikube ip>/bannana
+curl -kL http://<<minikube ip>/notfound
+
+
+Example 2
+
+step 1:
+minikube enable addons ingress
+kubectl get pods -n kube-system
+
+step 2:
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: meow
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: meow
+  template:
+    metadata:
+      labels:
+        app: meow
+    spec:
+      containers:
+      - name: meow
+        image: gcr.io/kubernetes-e2e-test-images/echoserver:2.1
+        ports:
+        - containerPort: 8080
+
+step 3:
+kubectl create -f meow.yaml
+
+step 4:
+
+kubectl get deploy
+
+step 5:
+notepad svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: meow-svc
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: meow
+
+step 6:
+
+kubectl create -f svc.yaml
+
+notepad ingmeow.yaml
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: meow-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: \"false\"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /meow
+        backend:
+          serviceName: meow-svc
+          servicePort: 80
+
+step 7
+kubectl create -f ingmeow.yaml
+
+step 8:
+curl http://192.168.99.102/meow
+
+curl http://192.168.99.102/crap
+
+step 9
+
+kubectl get pods -a -n kube-system
+
+(check for nginx-controller)
+
+kubectl logs <<podname of nginx-controller>> -n kube-system
+
+step 10:
+
+kubectl exec -it nginx-ingress-controller-67956bf89d-d429z -n kube-system cat /etc/nginx/nginx.conf
