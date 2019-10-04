@@ -1,62 +1,16 @@
-#Liveness probe...
-#Eg 1 - Container Probe...
-
-liv1.yml
+quota2.yml
 ---------
 apiVersion: v1
-kind: Pod
+kind: ResourceQuota
 metadata:
-  labels:
-    test: liveness
-  name: liveness-exec
+  name: pod-demo
 spec:
-  containers:
-  - name: liveness
-    image: ubuntu
-    args:
-    - /bin/sh
-    - -c
-    - cat > /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600
-    livenessProbe:
-      exec:
-        command:
-        - cat
-        - /tmp/healthy
-      initialDelaySeconds: 5
-      periodSeconds: 5
+  hard:
+    pods: "2"
 
-kubectl create -f liv1.yml
-kubectl describe pod liveness-exec
-kubectl get pods
-
-#Eg2 - HTTP Liveness Probe.
-
-liv2.yml
---------
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    test: liveness
-  name: liveness-http
-spec:
-  containers:
-  - name: liveness
-    image: k8s.gcr.io/liveness
-    args:
-    - /server
-    livenessProbe:
-      httpGet:
-        path: /healthz
-        port: 8080
-        httpHeaders:
-        - name: Custom-Header
-          value: Awesome
-      initialDelaySeconds: 3
-      periodSeconds: 3
-
-kubectl create -f liv2.yml
-kubectl get pods
-kubectl describe pod liveness-http
-
-code of server.go --> https://github.com/kubernetes/kubernetes/blob/master/test/images/agnhost/liveness/server.go
+kubectl create -f quota2.yml
+kubectl get quota
+kubectl get resourcequota pod-demo --output=yaml
+kubectl run nginx-mp --image=nginx --port=80 --replicas=3
+kubectl get deployment 
+kubectl get deployment pod-quota-demo --output=yaml
